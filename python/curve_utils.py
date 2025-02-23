@@ -49,24 +49,12 @@ def sample_blender_curve(curve_obj, t):
             return curve_segments[-1].evaluate(1.0).flatten()
 
         point = evaluate_composite_curve(t)
-        print(f"Point on the composite curve at t={t}: {point}")
+        # print(f"Point on the composite curve at t={t}: {point}")
 
-        curve_obj = bpy.context.active_object
-        return curve_obj.location + mathutils.Vector(point)
+        # curve_obj = bpy.context.active_object
+        return point
 
 
-def C1(t):
-    """ Parametric curve 1: Example - Helix """
-    return np.array([t, np.sin(t), np.cos(t)])
-
-def C2(s):
-    """ Parametric curve 2: Example - Cylinder spiral """
-    return np.array([np.cos(s), np.sin(s), s])
-
-def distance_squared(params):
-    """ Function to minimize: Squared Euclidean distance between C1(t) and C2(s) """
-    t, s = params
-    return np.sum((C1(t) - C2(s))**2)
 
 def get_curve_object(curveID):
     return bpy.data.objects.get(curveID)
@@ -76,25 +64,38 @@ if __name__ == "<run_path>":
     curveA = get_curve_object("GraphTest.001")
     curveB = get_curve_object("GraphTest.009")
 
-    posA = sample_blender_curve(curveA, 0.5)
-    posB = sample_blender_curve(curveB, 0.5)
+    curveA = get_curve_object("GraphTest.012")
+    curveB = get_curve_object("GraphTest.020")
 
-    print(f"posA({posA}) :: posB({posB})")
+    # posA = sample_blender_curve(curveA, 0.5)
+    # posB = sample_blender_curve(curveB, 0.5)
+
+    # print(f"posA({posA}) :: posB({posB})")
 
 
-    bpy.context.scene.cursor.location = posA
         
-    # # Initial guess for (t, s)
-    # t_init, s_init = 0.5, np.pi / 4
+    # Initial guess for (t, s)
+    t_init, s_init = 0.5, 0.5
 
-    # print(f"minimize(distance_squared, x0=[t_init, s_init], bounds=[(0, 10), (0, 10)]")
-    # # Minimize distance_squared with constraints on t and s
-    # result = minimize(distance_squared, x0=[t_init, s_init], bounds=[(0, 10), (0, 10)])
+    def distance_squared(params):
+        """ Function to minimize: Squared Euclidean distance between C1(t) and C2(s) """
+        t, s = params
+        posA = sample_blender_curve(curveA, t) + [curveA.location.x, curveA.location.y, curveA.location.z]
+        posB = sample_blender_curve(curveB, s) + [curveB.location.x, curveB.location.y, curveB.location.z]
+        return np.sum((posA - posB)**2)
 
-    # print(f"result.x")
-    # # Extract results
-    # t_min, s_min = result.x
-    # min_dist = np.sqrt(result.fun)
+    # Minimize distance_squared with constraints on t and s
+    result = minimize(distance_squared, x0=[t_init, s_init], bounds=[(0, 1), (0, 1)])
 
-    # print(f"Closest parameters: t = {t_min:.6f}, s = {s_min:.6f}")
-    # print(f"Minimum distance: {min_dist:.6f}")
+    print(f"result.x")
+    # Extract results
+    t_min, s_min = result.x
+    min_dist = np.sqrt(result.fun)
+
+    print(f"Closest parameters: t = {t_min:.6f}, s = {s_min:.6f}")
+    print(f"Minimum distance: {min_dist:.6f}")
+
+    posA = sample_blender_curve(curveA, t_min) + [curveA.location.x, curveA.location.y, curveA.location.z]
+    posB = sample_blender_curve(curveB, s_min) + [curveB.location.x, curveB.location.y, curveB.location.z]
+
+    bpy.context.scene.cursor.location = posA + ((posB - posA) * 0.5)
