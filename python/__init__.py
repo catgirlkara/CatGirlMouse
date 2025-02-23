@@ -21,8 +21,8 @@ print("Blender's Python path:", python_path)
 subprocess.run([python_path, "-m", "ensurepip"])
 
 
-# Check if the required packages are installed
-required_packages = ["numpy", "scipy"]
+# ADD YOUR REQUIRED PACKAGES HERE!!!
+required_packages = ["numpy", "scipy", "bezier", "matplotlib"]
 
 installed_packages = {pkg.name for pkg in pkgutil.iter_modules()}
 
@@ -37,28 +37,5 @@ for package in required_packages:
 
 print(f"Environment should be good to go?")
 
-
 # Add the folder to the Python import path
 sys.path.append(packages_directory)
-
-# Import the installed packages
-
-import numpy as np
-# import librosa
-# from pydub import AudioSegment
-# import simpleaudio as sa
-
-# (Add the rest of your script here, including the custom nodes and operators)
-# def create_sine_wave(frequency=440, duration=1, amplitude=5000, sample_rate=44100):
-#     t = np.linspace(0, duration, int(sample_rate * duration), dtype=np.float32)
-#     wave = amplitude * np.sin(2 * np.pi * frequency * t)
-#     return wave
-
-# def play_sound(wave, sample_rate=44100):
-#     audio = sa.WaveObject(wave, 1, 2, sample_rate)
-#     play_obj = audio.play()
-#     play_obj.wait_done()
-
-# if __name__ == "__main__":
-#     wave = create_sine_wave()
-#     play_sound(wave)
