@@ -4,6 +4,63 @@ from scipy.optimize import minimize
 import bezier
 import mathutils
 import time
+
+from collections.abc import Awaitable, Callable, Iterable, Iterator, MutableSet, Reversible, Set as AbstractSet, Sized
+
+def transform_points_from_BY_to_AZ(B : np.ndarray, Y : np.ndarray, A : np.ndarray, Z : np.ndarray, points : Iterable[np.ndarray]):
+    # Direction vectors
+    v1 = Y - B
+    v2 = Z - A
+
+    # Lengths of the segments
+    L1 = np.linalg.norm(v1)
+    L2 = np.linalg.norm(v2)
+
+    # Unit vectors
+    u1 = v1 / L1
+    u2 = v2 / L2
+
+    # Compute the cross product and dot product
+    cross_prod = np.cross(u1, u2)
+    dot_prod = np.dot(u1, u2)
+
+    # Skew-symmetric cross-product matrix
+    K = np.array([
+        [0, -cross_prod[2], cross_prod[1]],
+        [cross_prod[2], 0, -cross_prod[0]],
+        [-cross_prod[1], cross_prod[0], 0]
+    ])
+
+    # Rotation matrix using Rodrigues' rotation formula
+    I = np.eye(3)
+    R = I + K + K @ K * ((1 - dot_prod) / (np.linalg.norm(cross_prod) ** 2))
+
+
+    # Scaling factor
+    s = L2 / L1
+
+    # Combined rotation and scaling matrix
+    M = s * R
+
+    # Affine transformation matrix in homogeneous coordinates
+    affine_matrix = np.eye(4)
+    affine_matrix[:3, :3] = M
+    affine_matrix[:3, 3] = A - M @ B
+
+    transformed_points = []
+    for P in points:
+        # Convert P to homogeneous coordinates
+        P_homogeneous = np.append(P, 1)
+
+        # Apply the affine transformation
+        P_transformed_homogeneous = affine_matrix @ P_homogeneous
+
+        # Convert back to Cartesian coordinates
+        P_transformed = P_transformed_homogeneous[:3]
+
+        transformed_points.append(P_transformed)
+
+    return transformed_points
     
 def sample_blender_curve(curve_obj, t):
     spline = curve_obj.data.splines[0]
@@ -96,7 +153,8 @@ def inverse_lerp(a, b, v) -> float:
         a = x
     return (v - a) / (b - a)
 
-def create_visualization(points):
+
+def create_visualization(verts, edges, faces):
     """ Create an object to visualize the closest points and a line connecting them. """
     try:
         mesh = bpy.data.meshes["TempMesh"]
@@ -107,11 +165,6 @@ def create_visualization(points):
     mesh = bpy.data.meshes.new("TempMesh")
     obj = bpy.data.objects.new("TempMeshObj", mesh)
     bpy.context.collection.objects.link(obj)
-
-    # Create mesh data
-    verts = points
-    edges = []
-    faces = []
 
     mesh.from_pydata(verts, edges, faces)
     mesh.update()
@@ -160,30 +213,90 @@ if __name__ == "<run_path>":
     # blargPoints.append(sample_blender_curve(leftCurve, lerp(leftStartT, leftEndT, .5)) + leftCurve.location)
     # blargPoints.append(sample_blender_curve(rightCurve, lerp(rightStartT, rightEndT, .5)) + rightCurve.location)
     
-
-
     for xVert in range(15):
         xT = float(xVert) / 14
         bottomT = lerp(bottomStartT, bottomEndT, xT)
-        bottomPosition = sample_blender_curve(bottomCurve, bottomT) + bottomCurve.location
+        bottomPosition = np.array(sample_blender_curve(bottomCurve, bottomT) + bottomCurve.location)
         topT = lerp(topStartT, topEndT, xT)
-        topPosition = sample_blender_curve(topCurve, topT) + topCurve.location
+        topPosition = np.array(sample_blender_curve(topCurve, topT) + topCurve.location)
 
+        verticalVerts = []
         for yVert in range(15):
             yT = float(yVert) / 14
             leftT = lerp(leftStartT, leftEndT, yT)
-            leftPosition = sample_blender_curve(leftCurve, leftT) + leftCurve.location
+            leftPosition = np.array(sample_blender_curve(leftCurve, leftT) + leftCurve.location)
             rightT = lerp(rightStartT, rightEndT, yT)
-            rightPosition = sample_blender_curve(rightCurve, rightT) + rightCurve.location
+            rightPosition = np.array(sample_blender_curve(rightCurve, rightT) + rightCurve.location)
 
             verticalPosition = lerp(leftPosition, rightPosition, xT)
+
+            verticalVerts.append(verticalPosition)
+
+        B, *_, Y = verticalVerts
+        A = bottomPosition
+        Z = topPosition
+        
+        transformedVerts = transform_points_from_BY_to_AZ(B, Y, A, Z, verticalVerts)
+        for vert in transformedVerts:
+            blargPoints.append(vert)
+
+
+
+    for yVert in range(15):
+        yT = float(yVert) / 14
+        leftT = lerp(leftStartT, leftEndT, yT)
+        leftPosition = np.array(sample_blender_curve(leftCurve, leftT) + leftCurve.location)
+        rightT = lerp(rightStartT, rightEndT, yT)
+        rightPosition = np.array(sample_blender_curve(rightCurve, rightT) + rightCurve.location)
+        
+        horizontalVerts = []
+        for xVert in range(15):
+            xT = float(xVert) / 14
+            bottomT = lerp(bottomStartT, bottomEndT, xT)
+            bottomPosition = np.array(sample_blender_curve(bottomCurve, bottomT) + bottomCurve.location)
+            topT = lerp(topStartT, topEndT, xT)
+            topPosition = np.array(sample_blender_curve(topCurve, topT) + topCurve.location)
+
+
             horizontalPosition = lerp(bottomPosition, topPosition, yT)
 
-            blargPoints.append(verticalPosition)
-            blargPoints.append(horizontalPosition)
-            # blargPoints.append(horizontalPosition + ((verticalPosition - horizontalPosition) * 0.5))
+            horizontalVerts.append(horizontalPosition)
 
-    create_visualization(blargPoints)
+        B, *_, Y = horizontalVerts
+        A = leftPosition
+        Z = rightPosition
+        
+        transformedVerts = transform_points_from_BY_to_AZ(B, Y, A, Z, horizontalVerts)
+        # for vert in transformedVerts:
+        #     blargPoints.append(vert)
+
+
+    # for xVert in range(15):
+    #     xT = float(xVert) / 14
+    #     bottomT = lerp(bottomStartT, bottomEndT, xT)
+    #     bottomPosition = sample_blender_curve(bottomCurve, bottomT) + bottomCurve.location
+    #     topT = lerp(topStartT, topEndT, xT)
+    #     topPosition = sample_blender_curve(topCurve, topT) + topCurve.location
+
+    #     verticalVerts = []
+    #     for yVert in range(15):
+    #         yT = float(yVert) / 14
+    #         leftT = lerp(leftStartT, leftEndT, yT)
+    #         leftPosition = sample_blender_curve(leftCurve, leftT) + leftCurve.location
+    #         rightT = lerp(rightStartT, rightEndT, yT)
+    #         rightPosition = sample_blender_curve(rightCurve, rightT) + rightCurve.location
+
+    #         verticalPosition = lerp(leftPosition, rightPosition, xT)
+    #         horizontalPosition = lerp(bottomPosition, topPosition, yT)
+
+    #         verticalVerts.append()
+
+    #         # blargPoints.append(verticalPosition)
+    #         # blargPoints.append(horizontalPosition)
+    #         # blargPoints.append(horizontalPosition + ((verticalPosition - horizontalPosition) * 0.5))
+
+    # create_visualization(blargPoints, [[16*2,16*2+1]], [])
+    create_visualization(blargPoints, [], [])
 
 
 
