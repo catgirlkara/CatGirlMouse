@@ -22,7 +22,7 @@ subprocess.run([python_path, "-m", "ensurepip"])
 
 
 # ADD YOUR REQUIRED PACKAGES HERE!!!
-required_packages = ["numpy", "scipy", "bezier", "matplotlib"]
+required_packages = ["numpy", "scipy", "bezier", "py5"]
 
 installed_packages = {pkg.name for pkg in pkgutil.iter_modules()}
 
