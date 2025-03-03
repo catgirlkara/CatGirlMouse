@@ -183,6 +183,9 @@ def create_visualization(verts, edges, faces):
 
     mesh.from_pydata(verts, edges, faces)
     mesh.update()
+    bpy.context.view_layer.objects.active = mesh
+    # bpy.ops.mesh.remove_doubles(5)
+    
 
 
 def get_curve_section_points(leftCurve, rightCurve, topCurve, bottomCurve):
@@ -226,13 +229,7 @@ def get_curve_section_points(leftCurve, rightCurve, topCurve, bottomCurve):
         for yVert in range(15):
             yT = float(yVert) / 14
             verticalPosition = None
-            # if(yT == 0):        
-            #     verticalPosition = np.array(sample_blender_curve(bottomCurve, bottomT) + bottomCurve.location)
-            #     topPosition = np.array(sample_blender_curve(topCurve, topT) + topCurve.location)
-
-            # else if yT == 1:
-
-            # else:
+            
             leftT = lerp(leftStartT, leftEndT, yT)
             leftPosition = np.array(sample_blender_curve(leftCurve, leftT) + leftCurve.location)
             rightT = lerp(rightStartT, rightEndT, yT)
@@ -252,35 +249,60 @@ def get_curve_section_points(leftCurve, rightCurve, topCurve, bottomCurve):
 
 
 
-    for yVert in range(15):
-        yT = float(yVert) / 14
-        leftT = lerp(leftStartT, leftEndT, yT)
-        leftPosition = np.array(sample_blender_curve(leftCurve, leftT) + leftCurve.location)
-        rightT = lerp(rightStartT, rightEndT, yT)
-        rightPosition = np.array(sample_blender_curve(rightCurve, rightT) + rightCurve.location)
+    # for yVert in range(15):
+    #     yT = float(yVert) / 14
+    #     leftT = lerp(leftStartT, leftEndT, yT)
+    #     leftPosition = np.array(sample_blender_curve(leftCurve, leftT) + leftCurve.location)
+    #     rightT = lerp(rightStartT, rightEndT, yT)
+    #     rightPosition = np.array(sample_blender_curve(rightCurve, rightT) + rightCurve.location)
         
-        horizontalVerts = []
-        for xVert in range(15):
-            xT = float(xVert) / 14
-            bottomT = lerp(bottomStartT, bottomEndT, xT)
-            bottomPosition = np.array(sample_blender_curve(bottomCurve, bottomT) + bottomCurve.location)
-            topT = lerp(topStartT, topEndT, xT)
-            topPosition = np.array(sample_blender_curve(topCurve, topT) + topCurve.location)
+    #     horizontalVerts = []
+    #     for xVert in range(15):
+    #         xT = float(xVert) / 14
+    #         bottomT = lerp(bottomStartT, bottomEndT, xT)
+    #         bottomPosition = np.array(sample_blender_curve(bottomCurve, bottomT) + bottomCurve.location)
+    #         topT = lerp(topStartT, topEndT, xT)
+    #         topPosition = np.array(sample_blender_curve(topCurve, topT) + topCurve.location)
 
 
-            horizontalPosition = lerp(bottomPosition, topPosition, yT)
+    #         horizontalPosition = lerp(bottomPosition, topPosition, yT)
 
-            horizontalVerts.append(horizontalPosition)
+    #         horizontalVerts.append(horizontalPosition)
 
-        B, *_, Y = horizontalVerts
-        A = leftPosition
-        Z = rightPosition
+    #     B, *_, Y = horizontalVerts
+    #     A = leftPosition
+    #     Z = rightPosition
         
-        transformedVerts = transform_points_from_BY_to_AZ(B, Y, A, Z, horizontalVerts)
-        # for vert in transformedVerts:
-        #     blargPoints.append(vert)
+    #     transformedVerts = transform_points_from_BY_to_AZ(B, Y, A, Z, horizontalVerts)
+    #     # for vert in transformedVerts:
+    #     #     sectionPoints.append(vert)
 
     return sectionPoints
+
+def get_15x15_faces(blargPoints):
+    # Number of vertices along one dimension
+    grid_size = 15
+
+    # Initialize the list to store quads
+    quads = []
+
+    # Iterate over each cell in the grid
+    for i in range(grid_size - 1):
+        for j in range(grid_size - 1):
+            # Calculate the indices of the four corners of the current quad
+            top_left = i * grid_size + j
+            top_right = top_left + 1
+            bottom_left = top_left + grid_size
+            bottom_right = bottom_left + 1
+
+            # Append the quad as a tuple of indices
+            top_left += len(blargPoints) - (15*15)
+            top_right += len(blargPoints) - (15*15)
+            bottom_right += len(blargPoints) - (15*15)
+            bottom_left += len(blargPoints) - (15*15)
+            quads.append((top_left, top_right, bottom_right, bottom_left))
+    
+    return quads
 
 if __name__ == "<run_path>":
     
@@ -292,50 +314,53 @@ if __name__ == "<run_path>":
             self.bottomCurve = bottomCurve
 
     curve_sections = [
-        curve_section(leftCurve = get_curve_object("GraphTest.012"), rightCurve = get_curve_object("GraphTest.001"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.009")),
-        curve_section(leftCurve = get_curve_object("GraphTest.013"), rightCurve = get_curve_object("GraphTest.012"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.009")),
-        curve_section(leftCurve = get_curve_object("GraphTest.001"), rightCurve = get_curve_object("GraphTest.002"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.009")),
-        curve_section(leftCurve = get_curve_object("GraphTest.002"), rightCurve = get_curve_object("GraphTest.003"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.009")),
-
-        curve_section(leftCurve = get_curve_object("GraphTest.014"), rightCurve = get_curve_object("GraphTest.013"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.009")),
-        curve_section(leftCurve = get_curve_object("GraphTest.003"), rightCurve = get_curve_object("GraphTest.011"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.009")),
-        curve_section(leftCurve = get_curve_object("GraphTest.011"), rightCurve = get_curve_object("GraphTest.005"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.009")),
-
-        curve_section(leftCurve = get_curve_object("GraphTest.005"), rightCurve = get_curve_object("GraphTest.006"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.009")),
-        curve_section(leftCurve = get_curve_object("GraphTest.006"), rightCurve = get_curve_object("GraphTest.010"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.009")),
-        curve_section(leftCurve = get_curve_object("GraphTest.008"), rightCurve = get_curve_object("GraphTest.018"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.009")),
-        curve_section(leftCurve = get_curve_object("GraphTest.018"), rightCurve = get_curve_object("GraphTest.017"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.009")),
-        curve_section(leftCurve = get_curve_object("GraphTest.017"), rightCurve = get_curve_object("GraphTest.016"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.009")),
-        curve_section(leftCurve = get_curve_object("GraphTest.016"), rightCurve = get_curve_object("GraphTest.015"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.009")),
-        curve_section(leftCurve = get_curve_object("GraphTest.015"), rightCurve = get_curve_object("GraphTest.014"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.009")),
-
-        curve_section(leftCurve = get_curve_object("GraphTest.014"), rightCurve = get_curve_object("GraphTest.013"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.020")),
-        curve_section(leftCurve = get_curve_object("GraphTest.013"), rightCurve = get_curve_object("GraphTest.012"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.007")),
-
-        curve_section(leftCurve = get_curve_object("GraphTest.012"), rightCurve = get_curve_object("GraphTest.001"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.007")),
-        curve_section(leftCurve = get_curve_object("GraphTest.001"), rightCurve = get_curve_object("GraphTest.002"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.007")),
-
-        curve_section(leftCurve = get_curve_object("GraphTest.002"), rightCurve = get_curve_object("GraphTest.003"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.020")),
-        curve_section(leftCurve = get_curve_object("GraphTest.003"), rightCurve = get_curve_object("GraphTest.011"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.020")),
-        curve_section(leftCurve = get_curve_object("GraphTest.011"), rightCurve = get_curve_object("GraphTest.005"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.020")),
-        curve_section(leftCurve = get_curve_object("GraphTest.005"), rightCurve = get_curve_object("GraphTest.006"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.020")),
-        curve_section(leftCurve = get_curve_object("GraphTest.006"), rightCurve = get_curve_object("GraphTest.010"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.020")),
-        curve_section(leftCurve = get_curve_object("GraphTest.008"), rightCurve = get_curve_object("GraphTest.018"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.020")),
-        curve_section(leftCurve = get_curve_object("GraphTest.018"), rightCurve = get_curve_object("GraphTest.017"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.020")),
-        curve_section(leftCurve = get_curve_object("GraphTest.017"), rightCurve = get_curve_object("GraphTest.016"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.020")),
-        curve_section(leftCurve = get_curve_object("GraphTest.016"), rightCurve = get_curve_object("GraphTest.015"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.020")),
-        curve_section(leftCurve = get_curve_object("GraphTest.015"), rightCurve = get_curve_object("GraphTest.014"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.020")),
-
-        curve_section(leftCurve = get_curve_object("GraphTest.008"), rightCurve = get_curve_object("GraphTest.010"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.020")),
+        # # ## FRONT
+        # curve_section(leftCurve = get_curve_object("GraphTest.010"), rightCurve = get_curve_object("GraphTest.025"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.020")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.025"), rightCurve = get_curve_object("GraphTest.026"), topCurve = get_curve_object("GraphTest.023"), bottomCurve = get_curve_object("GraphTest.020")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.026"), rightCurve = get_curve_object("GraphTest.008"), topCurve = get_curve_object("GraphTest.024"), bottomCurve = get_curve_object("GraphTest.020")),
+        
+        # ## LEFT
+        # curve_section(leftCurve = get_curve_object("GraphTest.008"), rightCurve = get_curve_object("GraphTest.018"), topCurve = get_curve_object("GraphTest.024"), bottomCurve = get_curve_object("GraphTest.020")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.018"), rightCurve = get_curve_object("GraphTest.017"), topCurve = get_curve_object("GraphTest.024"), bottomCurve = get_curve_object("GraphTest.020")),
+        
+        # #TODO might need to split 017-016
+        # curve_section(leftCurve = get_curve_object("GraphTest.017"), rightCurve = get_curve_object("GraphTest.016"), topCurve = get_curve_object("GraphTest.024"), bottomCurve = get_curve_object("GraphTest.020")),
+        
+        # curve_section(leftCurve = get_curve_object("GraphTest.016"), rightCurve = get_curve_object("GraphTest.015"), topCurve = get_curve_object("GraphTest.024"), bottomCurve = get_curve_object("GraphTest.020")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.015"), rightCurve = get_curve_object("GraphTest.014"), topCurve = get_curve_object("GraphTest.024"), bottomCurve = get_curve_object("GraphTest.020")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.019"), rightCurve = get_curve_object("GraphTest.014"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.024")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.014"), rightCurve = get_curve_object("GraphTest.013"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.020")),
+        
+        ## BACK
+        # curve_section(leftCurve = get_curve_object("GraphTest.013"), rightCurve = get_curve_object("GraphTest.012"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.007")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.012"), rightCurve = get_curve_object("GraphTest.001"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.007")),
+        curve_section(leftCurve = get_curve_object("GraphTest.001"), rightCurve = get_curve_object("GraphTest.002"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.007")),
+        
+        # ## RIGHT
+        # curve_section(leftCurve = get_curve_object("GraphTest.002"), rightCurve = get_curve_object("GraphTest.003"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.020")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.003"), rightCurve = get_curve_object("GraphTest.011"), topCurve = get_curve_object("GraphTest.027"), bottomCurve = get_curve_object("GraphTest.020")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.003"), rightCurve = get_curve_object("GraphTest.011"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.027")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.003"), rightCurve = get_curve_object("GraphTest.011"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.009")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.011"), rightCurve = get_curve_object("GraphTest.005"), topCurve = get_curve_object("GraphTest.027"), bottomCurve = get_curve_object("GraphTest.020")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.011"), rightCurve = get_curve_object("GraphTest.005"), topCurve = get_curve_object("GraphTest.009"), bottomCurve = get_curve_object("GraphTest.027")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.011"), rightCurve = get_curve_object("GraphTest.005"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.009")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.005"), rightCurve = get_curve_object("GraphTest.022"), topCurve = get_curve_object("GraphTest.004"), bottomCurve = get_curve_object("GraphTest.021")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.005"), rightCurve = get_curve_object("GraphTest.006"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.020")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.006"), rightCurve = get_curve_object("GraphTest.028"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.020")),
+        # curve_section(leftCurve = get_curve_object("GraphTest.028"), rightCurve = get_curve_object("GraphTest.010"), topCurve = get_curve_object("GraphTest.021"), bottomCurve = get_curve_object("GraphTest.020")),
     ]
 
     blargPoints = []
+    blargFaces = []
     for section in curve_sections:
         blargPoints.extend(get_curve_section_points(section.leftCurve, section.rightCurve, section.topCurve, section.bottomCurve))
+        blargFaces.extend(get_15x15_faces(blargPoints))
 
     print(len(blargPoints))
 
-    create_visualization(blargPoints, [], [])
+    create_visualization(blargPoints, [], blargFaces)
+
+
 
 
 
